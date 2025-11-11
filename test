@@ -3,3 +3,4 @@ npm install express crypto
 buat file .gitignore
 membuat index.js
 buat folder public, buat index.html
+index.js konfigurasi
