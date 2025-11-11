@@ -105,6 +105,12 @@
       text-align: center;
     }
 
+    .error {
+      color: #ff6b6b;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+
     @media (max-width: 480px) {
       .card {
         padding: 1.5rem;
@@ -123,18 +129,44 @@
     </form>
 
     <div id="output" class="output"></div>
+    <div id="error" class="error"></div>
   </div>
 
   <script>
-    document.getElementById("apiForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const name = document.getElementById("appName").value.trim();
-      if (!name) return;
+    const form = document.getElementById("apiForm");
+    const output = document.getElementById("output");
+    const errorMsg = document.getElementById("error");
 
-      const apiKey = 'API-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
-      const output = document.getElementById("output");
-      output.textContent = apiKey;
-      output.style.display = "block";
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = "";
+      output.style.display = "none";
+
+      const appName = document.getElementById("appName").value.trim();
+      if (!appName) {
+        errorMsg.textContent = "Nama aplikasi tidak boleh kosong.";
+        return;
+      }
+
+      try {
+        const response = await fetch("/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ appName })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          errorMsg.textContent = data.error || "Terjadi kesalahan pada server.";
+          return;
+        }
+
+        output.textContent = data.apiKey;
+        output.style.display = "block";
+      } catch (err) {
+        errorMsg.textContent = "Tidak dapat terhubung ke server.";
+      }
     });
   </script>
 </body>
