@@ -1,0 +1,5 @@
+npm init -y
+npm install express crypto
+buat file .gitignore
+membuat index.js
+buat folder public, buat index.html
