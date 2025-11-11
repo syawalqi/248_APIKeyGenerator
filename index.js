@@ -15,8 +15,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',        // ubah sesuai user MySQL kamu
-  password: '',        // ubah sesuai password MySQL kamu
-  database: 'apikey_db'
+  password: 'Gms041204#',        // ubah sesuai password MySQL kamu
+  database: 'apikey_db',
+  port: 3309
 });
 
 // Cek koneksi database
