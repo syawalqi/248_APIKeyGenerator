@@ -4,3 +4,4 @@ buat file .gitignore
 membuat index.js
 buat folder public, buat index.html
 index.js konfigurasi agar membuka file index.html
+membuat method post create api di index.js
