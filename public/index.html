@@ -22,7 +22,7 @@
 
     .card {
       width: 100%;
-      max-width: 420px;
+      max-width: 450px;
       background: rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(12px);
       border-radius: 16px;
@@ -110,22 +110,20 @@
       margin-top: 0.5rem;
       font-size: 0.9rem;
     }
-
-    @media (max-width: 480px) {
-      .card {
-        padding: 1.5rem;
-      }
-    }
   </style>
 </head>
 <body>
   <div class="card">
     <h2>🚀 Generate API Key</h2>
-    <p>Masukkan nama aplikasi atau proyek kamu di bawah ini.</p>
+    <p>Isi data pengguna dan nama aplikasi.</p>
 
     <form id="apiForm">
+      <input type="text" id="firstname" placeholder="First Name" required>
+      <input type="text" id="lastname" placeholder="Last Name" required>
+      <input type="email" id="email" placeholder="Email" required>
       <input type="text" id="appName" placeholder="Nama Aplikasi" required>
-      <button type="submit">Generate</button>
+
+      <button type="submit">Generate API Key</button>
     </form>
 
     <div id="output" class="output"></div>
@@ -142,9 +140,13 @@
       errorMsg.textContent = "";
       output.style.display = "none";
 
+      const firstname = document.getElementById("firstname").value.trim();
+      const lastname = document.getElementById("lastname").value.trim();
+      const email = document.getElementById("email").value.trim();
       const appName = document.getElementById("appName").value.trim();
-      if (!appName) {
-        errorMsg.textContent = "Nama aplikasi tidak boleh kosong.";
+
+      if (!firstname || !lastname || !email || !appName) {
+        errorMsg.textContent = "Semua field wajib diisi.";
         return;
       }
 
@@ -152,7 +154,7 @@
         const response = await fetch("/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ appName })
+          body: JSON.stringify({ firstname, lastname, email, appName })
         });
 
         const data = await response.json();
