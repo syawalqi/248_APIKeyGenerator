@@ -3,6 +3,11 @@ const path = require('path');
 const crypto = require('crypto');
 const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+// ⭐ ADDED: Token blacklist for logout
+let tokenBlacklist = new Set();
+
 const app = express();
 const port = 3000;
 
@@ -30,13 +35,40 @@ db.connect(err => {
   }
 });
 
+
+// ===================================================
+// ⭐ MODIFIED: Middleware untuk verifikasi token admin + blacklist
+// ===================================================
+function verifyAdminToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token)
+    return res.status(401).json({ error: "Token diperlukan." });
+
+  // ⭐ ADDED: check blacklist
+  if (tokenBlacklist.has(token)) {
+    return res.status(403).json({ error: "Token telah logout/di-blacklist." });
+  }
+
+  jwt.verify(token, "SECRET_ADMIN", (err, admin) => {
+    if (err)
+      return res.status(403).json({ error: "Token tidak valid." });
+
+    req.admin = admin;
+    req.token = token; // ⭐ ADDED: save token for logout
+    next();
+  });
+}
+
+
 // Routing default ke index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ===================================================
-// 1️⃣ CREATE USER + API KEY (UPDATED)
+// 1️⃣ CREATE USER + API KEY
 // ===================================================
 app.post('/create', (req, res) => {
   const { firstname, lastname, email, appName } = req.body;
@@ -45,7 +77,6 @@ app.post('/create', (req, res) => {
     return res.status(400).json({ error: 'Semua field wajib diisi.' });
   }
 
-  // Langkah 1: Insert user dulu
   const insertUserQuery =
     'INSERT INTO user (firstname, lastname, email) VALUES (?, ?, ?)';
 
@@ -55,14 +86,12 @@ app.post('/create', (req, res) => {
       return res.status(500).json({ error: 'Gagal menyimpan data user.' });
     }
 
-    const iduser = userResult.insertId; // ambil iduser baru
+    const iduser = userResult.insertId;
 
-    // Langkah 2: generate API key
     const randomBytes = crypto.randomBytes(16).toString('hex');
     const timestamp = Date.now().toString(36);
     const apiKey = `API-${appName.toUpperCase()}-${randomBytes}-${timestamp}`;
 
-    // Langkah 3: simpan API key ke tabel api_keys
     const insertApiQuery =
       'INSERT INTO api_keys (app_name, api_key, iduser, status) VALUES (?, ?, ?, ?)';
 
@@ -82,7 +111,7 @@ app.post('/create', (req, res) => {
 });
 
 // ===================================================
-// 2️⃣ VALIDATION ROUTE (Tetap sama)
+// 2️⃣ VALIDATION ROUTE
 // ===================================================
 app.post('/validate', (req, res) => {
   const { apiKey } = req.body;
@@ -96,45 +125,124 @@ app.post('/validate', (req, res) => {
     res.json({ valid: true, message: '✅ API Key valid.', data: results[0] });
   });
 });
- 
 
-// =================================================== 
-// 3️⃣ REGISTER ADMIN (UPDATED)
-app.post('/register-admin', async (req, res) => {
+
+// ===================================================
+// 3️⃣ REGISTER ADMIN
+// ===================================================
+app.post("/registeradmin", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password)
     return res.status(400).json({ error: "Email dan password wajib diisi." });
 
   try {
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Cek apakah email admin sudah ada
-    const checkQuery = "SELECT * FROM admin WHERE email = ?";
-    db.query(checkQuery, [email], (err, results) => {
-      if (err) return res.status(500).json({ error: "Server error." });
-
-      if (results.length > 0) {
-        return res.status(400).json({ error: "Email admin sudah terdaftar." });
+    const query = "INSERT INTO admin (email, password) VALUES (?, ?)";
+    db.query(query, [email, hashedPassword], (err, result) => {
+      if (err) {
+        if (err.code === "ER_DUP_ENTRY") {
+          return res.status(400).json({ error: "Email sudah terdaftar." });
+        }
+        return res.status(500).json({ error: "Kesalahan server." });
       }
 
-      // Insert admin baru
-      const insertQuery = "INSERT INTO admin (email, password) VALUES (?, ?)";
-      db.query(insertQuery, [email, hashedPassword], (err2, result) => {
-        if (err2) return res.status(500).json({ error: "Gagal membuat admin." });
-
-        res.json({
-          message: "Admin berhasil dibuat!",
-          admin: { idadmin: result.insertId, email }
-        });
-      });
+      res.json({ message: "Admin berhasil dibuat!" });
     });
-
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ error: "Kesalahan server." });
   }
 });
+
+
+// ===================================================
+// 4️⃣ LOGIN ADMIN
+// ===================================================
+app.post("/loginadmin", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password)
+    return res.status(400).json({ error: "Email dan password wajib diisi." });
+
+  const query = "SELECT * FROM admin WHERE email = ?";
+  db.query(query, [email], async (err, results) => {
+    if (err) return res.status(500).json({ error: "Kesalahan server." });
+
+    if (results.length === 0)
+      return res.status(401).json({ error: "Email tidak ditemukan." });
+
+    const admin = results[0];
+    const match = await bcrypt.compare(password, admin.password);
+
+    if (!match)
+      return res.status(401).json({ error: "Password salah." });
+
+    const token = jwt.sign(
+      { idadmin: admin.idadmin, email: admin.email },
+      "SECRET_ADMIN",
+      { expiresIn: "3h" }
+    );
+
+    res.json({
+      message: "Login berhasil!",
+      token,
+      dashboard: "/admin/dashboard" // ⭐ ADDED
+    });
+  });
+});
+
+
+// ===================================================
+// 5️⃣ ADMIN CHECK TOKEN
+// ===================================================
+app.get("/admin/me", verifyAdminToken, (req, res) => {
+  res.json({
+    message: "Token valid.",
+    admin: req.admin
+  });
+});
+
+
+// ===================================================
+// ⭐ NEW: 6️⃣ ADMIN DASHBOARD
+// ===================================================
+app.get("/admin/dashboard", verifyAdminToken, (req, res) => {
+  res.json({
+    message: "Selamat datang di Dashboard Admin!",
+    admin: req.admin,
+    routes: {
+      list_api_keys: "/admin/api-keys",
+      logout: "/admin/logout"
+    }
+  });
+});
+
+
+// ===================================================
+// ⭐ NEW: 7️⃣ LIST ALL API KEYS (Protected)
+// ===================================================
+app.get("/admin/api-keys", verifyAdminToken, (req, res) => {
+  db.query("SELECT * FROM api_keys", (err, rows) => {
+    if (err) return res.status(500).json({ error: "Kesalahan server." });
+
+    res.json({
+      count: rows.length,
+      data: rows
+    });
+  });
+});
+
+
+// ===================================================
+// ⭐ NEW: 8️⃣ ADMIN LOGOUT (Blacklist Token)
+// ===================================================
+app.post("/admin/logout", verifyAdminToken, (req, res) => {
+  tokenBlacklist.add(req.token); // add token to blacklist
+
+  res.json({ message: "Logout berhasil. Token di-blacklist." });
+});
+
 
 // ===================================================
 app.listen(port, () => {
