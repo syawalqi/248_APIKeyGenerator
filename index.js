@@ -204,32 +204,31 @@ app.get("/admin/me", verifyAdminToken, (req, res) => {
 });
 
 
-// ===================================================
-// ⭐ NEW: 6️⃣ ADMIN DASHBOARD
-// ===================================================
-app.get("/admin/dashboard", verifyAdminToken, (req, res) => {
-  res.json({
-    message: "Selamat datang di Dashboard Admin!",
-    admin: req.admin,
-    routes: {
-      list_api_keys: "/admin/api-keys",
-      logout: "/admin/logout"
-    }
-  });
+// ===============================
+// 6️⃣ ADMIN DASHBOARD PAGE (NEW)
+// ===============================
+app.get("/admin/dashboard", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
 
-// ===================================================
-// ⭐ NEW: 7️⃣ LIST ALL API KEYS (Protected)
-// ===================================================
-app.get("/admin/api-keys", verifyAdminToken, (req, res) => {
-  db.query("SELECT * FROM api_keys", (err, rows) => {
+// ===============================================
+// 7️⃣ GET ALL USERS + THEIR API KEYS (PROTECTED)
+// ===============================================
+app.get("/admin/users", verifyAdminToken, (req, res) => {
+  const query = `
+    SELECT 
+      user.iduser, user.firstname, user.lastname, user.email,
+      api_keys.api_key, api_keys.app_name, api_keys.created_at, api_keys.status
+    FROM user
+    LEFT JOIN api_keys ON api_keys.iduser = user.iduser
+    ORDER BY user.iduser DESC
+  `;
+
+  db.query(query, (err, results) => {
     if (err) return res.status(500).json({ error: "Kesalahan server." });
 
-    res.json({
-      count: rows.length,
-      data: rows
-    });
+    res.json({ users: results });
   });
 });
 

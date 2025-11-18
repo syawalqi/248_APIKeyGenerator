@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #333; color: white; }
+    .logout-btn {
+      background: red; color: white; border: none;
+      padding: 10px 20px; cursor: pointer; border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Admin Dashboard</h1>
+
+  <button class="logout-btn" onclick="logout()">Logout</button>
+
+  <h2>List User & API Keys</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID User</th>
+        <th>Full Name</th>
+        <th>Email</th>
+        <th>App Name</th>
+        <th>API Key</th>
+        <th>Status</th>
+        <th>Created At</th>
+      </tr>
+    </thead>
+    <tbody id="userTable"></tbody>
+  </table>
+
+  <script>
+    const token = localStorage.getItem("admintoken");
+
+    // If no token → redirect ke login
+    if (!token) {
+      alert("Harus login sebagai admin!");
+      window.location.href = "/adminlogin.html";
+    }
+
+    // Fetch users + API keys
+    fetch("/admin/users", {
+      headers: { "Authorization": "Bearer " + token }
+    })
+    .then(res => res.json())
+    .then(data => {
+      const table = document.getElementById("userTable");
+
+      data.users.forEach(u => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${u.iduser}</td>
+          <td>${u.firstname} ${u.lastname}</td>
+          <td>${u.email}</td>
+          <td>${u.app_name ?? "-"}</td>
+          <td>${u.api_key ?? "-"}</td>
+          <td>${u.status ?? "-"}</td>
+          <td>${u.created_at ?? "-"}</td>
+        `;
+
+        table.appendChild(row);
+      });
+    });
+
+    // Logout → remove token
+    function logout() {
+      localStorage.removeItem("admintoken");
+      alert("Anda telah logout.");
+      window.location.href = "/adminlogin.html";
+    }
+  </script>
+
+</body>
+</html>
