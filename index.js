@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const mysql = require('mysql2');
+const bcrypt = require('bcrypt');
 const app = express();
 const port = 3000;
 
@@ -94,6 +95,45 @@ app.post('/validate', (req, res) => {
 
     res.json({ valid: true, message: '✅ API Key valid.', data: results[0] });
   });
+});
+ 
+
+// =================================================== 
+// 3️⃣ REGISTER ADMIN (UPDATED)
+app.post('/register-admin', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password)
+    return res.status(400).json({ error: "Email dan password wajib diisi." });
+
+  try {
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Cek apakah email admin sudah ada
+    const checkQuery = "SELECT * FROM admin WHERE email = ?";
+    db.query(checkQuery, [email], (err, results) => {
+      if (err) return res.status(500).json({ error: "Server error." });
+
+      if (results.length > 0) {
+        return res.status(400).json({ error: "Email admin sudah terdaftar." });
+      }
+
+      // Insert admin baru
+      const insertQuery = "INSERT INTO admin (email, password) VALUES (?, ?)";
+      db.query(insertQuery, [email, hashedPassword], (err2, result) => {
+        if (err2) return res.status(500).json({ error: "Gagal membuat admin." });
+
+        res.json({
+          message: "Admin berhasil dibuat!",
+          admin: { idadmin: result.insertId, email }
+        });
+      });
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: "Kesalahan server." });
+  }
 });
 
 // ===================================================

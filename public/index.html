@@ -92,6 +92,25 @@
       opacity: 0.9;
     }
 
+    .login-btn {
+      margin-top: 1rem;
+      background: transparent;
+      border: 1px solid #00c6ff;
+      padding: 0.7rem;
+      border-radius: 8px;
+      color: #00c6ff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.3s;
+      width: 100%;
+      text-align: center;
+    }
+
+    .login-btn:hover {
+      background: #00c6ff;
+      color: #fff;
+    }
+
     .output {
       margin-top: 1rem;
       background: rgba(255, 255, 255, 0.08);
@@ -125,6 +144,11 @@
 
       <button type="submit">Generate API Key</button>
     </form>
+
+    <!-- 🔹 Button to redirect to admin login -->
+    <button class="login-btn" onclick="window.location.href='/loginadmin.html'">
+      Login Admin
+    </button>
 
     <div id="output" class="output"></div>
     <div id="error" class="error"></div>
