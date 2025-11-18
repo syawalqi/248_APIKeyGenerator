@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register Admin</title>
+  <style>
+    /* Reset */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+
+    body {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #1f1c2c, #928dab);
+    }
+
+    .card {
+      width: 360px;
+      padding: 2.5rem 2rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+      color: #fff;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    h2 {
+      margin-bottom: 1rem;
+      font-size: 1.7rem;
+      font-weight: 600;
+    }
+
+    p {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 1.5rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.9rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    input::placeholder { color: rgba(255,255,255,0.7); }
+    input:focus { background: rgba(255,255,255,0.25); box-shadow: 0 0 6px #00c6ff; }
+
+    button {
+      width: 100%;
+      padding: 0.9rem;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 0.7rem;
+      transition: all 0.3s ease;
+    }
+
+    button.register-btn {
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
+      color: #fff;
+    }
+
+    button.register-btn:hover {
+      transform: scale(1.03);
+      opacity: 0.95;
+    }
+
+    button.back-btn {
+      background: transparent;
+      border: 2px solid #00c6ff;
+      color: #00c6ff;
+    }
+
+    button.back-btn:hover {
+      background: #00c6ff;
+      color: #fff;
+    }
+
+    .message {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      min-height: 1.2rem;
+    }
+
+    .message.error { color: #ff6b6b; }
+    .message.success { color: #00ffb7; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Register Admin</h2>
+    <p>Masukkan email dan password untuk membuat akun admin baru.</p>
+
+    <input type="email" id="email" placeholder="Email Admin" required>
+    <input type="password" id="password" placeholder="Password" required>
+
+    <button class="register-btn" onclick="registerAdmin()">Register</button>
+    <button class="back-btn" onclick="window.location.href='/loginadmin.html'">⬅ Login Admin</button>
+    <button class="back-btn" onclick="window.location.href='/'">🏠 Beranda</button>
+
+    <div id="msg" class="message"></div>
+  </div>
+
+  <script>
+    async function registerAdmin() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const msg = document.getElementById("msg");
+
+      msg.textContent = "";
+      msg.className = "message";
+
+      if (!email || !password) {
+        msg.textContent = "Semua field wajib diisi.";
+        msg.classList.add("error");
+        return;
+      }
+
+      try {
+        const response = await fetch("/registeradmin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          msg.textContent = data.error;
+          msg.classList.add("error");
+        } else {
+          msg.textContent = "Admin berhasil dibuat! Silakan login.";
+          msg.classList.add("success");
+        }
+      } catch (err) {
+        msg.textContent = "Tidak dapat terhubung ke server.";
+        msg.classList.add("error");
+      }
+    }
+  </script>
+
+</body>
+</html>

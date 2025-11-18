@@ -244,6 +244,6 @@ app.post("/admin/logout", verifyAdminToken, (req, res) => {
 
 
 // ===================================================
-app.listen(port, () => {
-  console.log(`🚀 Server berjalan di http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`🚀 Server berjalan di http://10.66.10.153:${port}`);
 });

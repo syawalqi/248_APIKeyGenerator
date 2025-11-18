@@ -1,83 +1,133 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-    th { background: #333; color: white; }
-    .logout-btn {
-      background: red; color: white; border: none;
-      padding: 10px 20px; cursor: pointer; border-radius: 5px;
+    body {
+      font-family: "Poppins", sans-serif;
+      margin: 0;
+      background: #f0f2f5;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
+      color: white;
+      padding: 1rem 2rem;
+    }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    button.logout-btn {
+      background: #ff4d4f;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      color: white;
+      transition: 0.3s;
+    }
+    button.logout-btn:hover { opacity: 0.9; }
+
+    table {
+      width: 95%;
+      margin: 2rem auto;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 0.8rem;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #00c6ff;
+      color: white;
     }
   </style>
 </head>
 <body>
 
+<header>
   <h1>Admin Dashboard</h1>
-
   <button class="logout-btn" onclick="logout()">Logout</button>
+</header>
 
-  <h2>List User & API Keys</h2>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Nama</th>
+      <th>Email</th>
+      <th>App Name</th>
+      <th>API Key</th>
+      <th>Status</th>
+      <th>Dibuat</th>
+    </tr>
+  </thead>
+  <tbody id="usersTable"></tbody>
+</table>
 
-  <table>
-    <thead>
-      <tr>
-        <th>ID User</th>
-        <th>Full Name</th>
-        <th>Email</th>
-        <th>App Name</th>
-        <th>API Key</th>
-        <th>Status</th>
-        <th>Created At</th>
-      </tr>
-    </thead>
-    <tbody id="userTable"></tbody>
-  </table>
+<script>
+const token = localStorage.getItem("adminToken");
+if (!token) {
+  window.location.href = "/loginadmin.html";
+}
 
-  <script>
-    const token = localStorage.getItem("admintoken");
-
-    // If no token → redirect ke login
-    if (!token) {
-      alert("Harus login sebagai admin!");
-      window.location.href = "/adminlogin.html";
-    }
-
-    // Fetch users + API keys
-    fetch("/admin/users", {
-      headers: { "Authorization": "Bearer " + token }
-    })
-    .then(res => res.json())
-    .then(data => {
-      const table = document.getElementById("userTable");
-
-      data.users.forEach(u => {
-        const row = document.createElement("tr");
-
-        row.innerHTML = `
-          <td>${u.iduser}</td>
-          <td>${u.firstname} ${u.lastname}</td>
-          <td>${u.email}</td>
-          <td>${u.app_name ?? "-"}</td>
-          <td>${u.api_key ?? "-"}</td>
-          <td>${u.status ?? "-"}</td>
-          <td>${u.created_at ?? "-"}</td>
-        `;
-
-        table.appendChild(row);
-      });
+async function fetchUsers() {
+  try {
+    const res = await fetch("/admin/users", {
+      headers: { "Authorization": `Bearer ${token}` }
     });
 
-    // Logout → remove token
-    function logout() {
-      localStorage.removeItem("admintoken");
-      alert("Anda telah logout.");
-      window.location.href = "/adminlogin.html";
+    if (!res.ok) {
+      localStorage.removeItem("adminToken");
+      window.location.href = "/loginadmin.html";
+      return;
     }
-  </script>
+
+    const data = await res.json();
+    const tbody = document.getElementById("usersTable");
+    tbody.innerHTML = "";
+
+    data.users.forEach(u => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${u.iduser}</td>
+        <td>${u.firstname} ${u.lastname}</td>
+        <td>${u.email}</td>
+        <td>${u.app_name || "-"}</td>
+        <td>${u.api_key || "-"}</td>
+        <td>${u.status || "-"}</td>
+        <td>${u.created_at || "-"}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function logout() {
+  try {
+    await fetch("/admin/logout", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+  } catch (err) {
+    console.warn("Logout error:", err);
+  }
+  localStorage.removeItem("adminToken");
+  window.location.href = "/loginadmin.html";
+}
+
+fetchUsers();
+</script>
 
 </body>
 </html>
